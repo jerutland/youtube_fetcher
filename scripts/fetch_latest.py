@@ -1,0 +1,40 @@
+import json
+import os
+from googleapiclient.discovery import build
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+def get_recent_videos(channel_id):
+    youtube = build('youtube', 'v3', developerKey=API_KEY)
+    request = youtube.search().list(
+        part='snippet',
+        channelId=channel_id,
+        maxResults=5,
+        order='date',
+        publishedAfter=(datetime.utcnow() - timedelta(days=1)).isoformat("T") + "Z"
+    )
+    response = request.execute()
+    return [f"https://www.youtube.com/watch?v={item['id']['videoId']}"
+            for item in response['items'] if 'videoId' in item['id']]
+
+def main():
+    with open('./config/channels.json') as f:
+        channels = json.load(f)
+
+    all_links = []
+    for channel in channels:
+        links = get_recent_videos(channel['channel_id'])
+        all_links.extend(links)
+        print(f"✅ {channel['name']} — {len(links)} new videos")
+
+    # Output to file
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    with open(f'./output/links_{today}.txt', 'w') as f:
+        for link in all_links:
+            f.write(link + '\n')
+
+if __name__ == '__main__':
+    main()
