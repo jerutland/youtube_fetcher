@@ -21,20 +21,36 @@ def get_recent_videos(channel_id):
             for item in response['items'] if 'videoId' in item['id']]
 
 def main():
-    with open('./config/channels.json') as f:
-        channels = json.load(f)
+    try:
+        with open('./config/channels.json') as f:
+            channels = json.load(f)
 
-    all_links = []
-    for channel in channels:
-        links = get_recent_videos(channel['channel_id'])
-        all_links.extend(links)
-        print(f"✅ {channel['name']} — {len(links)} new videos")
+        all_links = []
+        for channel in channels:
+            try:
+                links = get_recent_videos(channel['channel_id'])
+                all_links.extend(links)
+                print(f"✅ {channel['name']} — {len(links)} new videos")
 
-    # Output to file
-    today = datetime.utcnow().strftime('%Y-%m-%d')
-    with open(f'./output/links_{today}.txt', 'w') as f:
-        for link in all_links:
-            f.write(link + '\n')
+            except Exception as e:
+                print(f"❌ Error fetching from {channel['name']}: {e}")
+
+        if not all_links:
+            print("⚠️ No new video links found.")
+        else:
+            os.makedirs('./output', exist_ok=True)
+            today = datetime.utcnow().strftime('%Y-%m-%d')
+            output_path = f'./output/links_{today}.txt'
+
+            with open(output_path, 'w') as f:
+                for link in all_links:
+                    f.write(link + '\n')
+
+            print(f"✅ Links saved to: {output_path}")
+
+    except Exception as e:
+        print("❌ Unexpected error:", e)
+
 
 if __name__ == '__main__':
     main()
